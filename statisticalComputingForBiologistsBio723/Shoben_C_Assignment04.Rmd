@@ -1,0 +1,228 @@
+---
+title: "Shoben_C_Assignment04"
+output:
+  html_document:
+    df_print: paged
+---
+
+---
+title: "Bio 723: Assignment 04 -- Variables as vectors"
+author: "Chelsea Shoben CRS70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+
+
+
+# Bio 723: Assignment 04
+
+Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately “computable” is to ask yourself “If I added or changed observations to this data set, would my code still compute the right solution?”
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately “computable” is to ask yourself “If I added or changed observations to this data set, would my code still compute the right solution?”
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+#Problems
+Each of the problems below is worth 2.5 pts.
+
+### 1. Write a function, vec.dot(x,y), that calculates the dot product of two vectors, x and y, of arbitrary number of elements.
+
+
+```{r}
+vec.dot <- function(x,y) {
+  products <- x * y
+  sum(products)
+}
+
+#examples
+
+x <- c(1, 2, 3)
+y<- c(4, 5, 6)
+
+
+vec.dot(x, y)
+```
+
+
+
+
+
+
+
+
+
+### 2. Write a function, vec.length(x), that calculates the Euclidean length of a vector. Your function should call your vec.dot() function aove.
+
+```{r}
+vec.length <- function(x){
+  sqrt(vec.dot(x,x))
+}
+  
+vec.length(x)
+
+```
+
+
+
+
+
+
+
+
+
+### 3. Write a function vector.cosine(x,y), that calculates the cosine of the angle between two vectors.
+
+```{r}
+vector.cosine <- function(x, y) {
+  (vec.dot(x,y)) / (vec.length(x) * vec.length(y))
+}
+
+vector.cosine(x,y)
+
+
+```
+
+
+
+
+### 4. Write a function vector.angle(x,y, deg=FALSE) that by defaults calculates the angle, in radians, between two vectors. When the argument  deg=TRUE your function should return the angle in degrees.
+
+```{r}
+vector.angle <- function(x,y, deg=FALSE) {
+  radian <- acos(vector.cosine(x,y))
+  degrees <- (radian*180)/pi
+  ifelse ((deg==FALSE), radian, degrees)
+
+}
+
+vector.angle(x,y)
+vector.angle(x, y, deg=TRUE)
+```
+
+
+
+
+
+### 5. Write a function, vector.distance(x,y) that calculates the distance between two vectors (i.e. distance between their end points).
+
+```{r}
+vector.distance <- function(x,y) {
+  sqrt(vec.dot(x,x) + vec.dot(y,y) - (vec.dot((2*x),y)))
+}
+
+vector.distance(x,y)
+```
+
+
+
+
+
+### 6. Write a function vector.mean(x) that calculates the mean of x, using vector algebraic operations.
+
+```{r}
+vector.mean <- function(x) {
+  n <- length(x)
+  sum <- sum(x)
+  (1/n) * sum
+}
+
+vector.mean(x)
+```
+
+
+
+
+
+### 7. Write a function vector.cov(x,y) that calculates the covariance of x and y, using vector algebraic operations. Remember to mean center!
+
+
+```{r}
+#mean centering
+mean.center <- function(x) {
+  x - vector.mean(x)
+}
+
+mean.center(x)
+mean.center(y)
+
+
+```
+
+
+
+```{r}
+vector.co <- function(x,y) {
+  X <- mean.center(x)
+  y <- mean.center(y)
+  ((vec.dot(x,y)) / (length(x)-1))
+}
+
+vector.co(x,y)
+```
+
+
+
+
+
+### 8. Write a function vector.var(x) that calculates the variance of x, using vector algebraic operations. Remember to mean center!
+
+```{r}
+vector.var <- function(x) {
+  x <- mean.center(x)
+  (vec.dot(x,x)) / (length(x) -1)
+}
+
+vector.var(x)
+```
+
+
+
+
+
+### 9. Write a function vector.cor(x,y) that calculates the correlation of x and y, using vector algebraic operations.Remember to mean center!
+
+```{r}
+vector.cor <- function(x,y) {
+  (vec.dot(mean.center(x),mean.center(y))) /
+     (vec.length(mean.center(x)) * vec.length(mean.center(y)))
+}
+vector.cor(x,y)
+```
+
+
+
+
+
+### 10. Write a function vector.regression(x,y) that calculates the slope of the regression of y on x using vector algebraic operations. Remember to mean center!
+
+```{r}
+vector.regression <- function(x,y) {
+  (vec.dot(mean.center(x), mean.center(y))) / (vec.dot(mean.center(x), mean.center(x)))
+  
+}
+
+vector.regression(x,y)
+```
+
+
+
+
+
+
+
+
+

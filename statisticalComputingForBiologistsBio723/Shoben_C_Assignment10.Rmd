@@ -1,0 +1,301 @@
+---
+title: "Bio 723: Assignment 10 - Clustering"
+author: "Chelsea Shoben crs70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+## Bio 723: Assignment 10
+Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) and the knit HTML via Sakai.
+
+
+Load in libraries
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(tidyverse)
+library(RColorBrewer)
+library(dendextend)
+library(cluster)
+library(broom)
+library(GGally)
+library(cowplot)
+```
+
+
+## Problems
+
+### 1. Using the built-in iris data set, create a distance matrix (using dist()) representing the Euclidean distance between each of the specimens (rows in the data frame). Make sure your distance matrix keeps the appropriate Species labels [2 pts]]
+
+
+
+```{r}
+iris.no.species <- select(iris, -Species) #remove 'Species' column from the data frame
+head(iris.no.species) #checking that 'Species' was removed
+```
+
+
+```{r}
+iris.matrix <- as.matrix(iris.no.species)
+head(iris.matrix) #make the data frame into a matrix. 
+dim(iris.matrix)
+```
+
+
+```{r}
+Species.names <- iris$Species
+rownames(iris.matrix) <- Species.names
+head(iris.matrix) # we can add  back the 'Species' names to each row by adding back the Species column as the row names. 
+dim(iris.matrix)
+```
+
+
+```{r}
+euc.iris <- dist(iris.matrix) #the Euclidean matrix
+head(euc.iris)
+dim(iris.matrix)
+```
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 2. Carry out hierarchical clustering of the iris specimens using UPGMA aglommeration based on the distance matrix from Problem 1. Draw a dendrogram representing this clustering using the dendextend package, coloring the labels (see dendextend::labels_colors()) according to Species assignment. That is, all the setosa specimens should have labels with the same color, all the viriginica specimens should have labels in a different color, etc. [6 pts]
+
+```{r}
+cluster.iris.plot <- hclust(euc.iris, method = 'average')
+plot(cluster.iris.plot) #visalize the hierach clustering
+```
+
+
+```{r}
+
+iris.dend <- as.dendrogram(cluster.iris.plot)
+
+colors_by_species <- as.numeric(iris[,5]) #use numbers to correspond to the three different Species. 
+colors_by_species <- colors_by_species[order.dendrogram(iris.dend)] #put the numbers created above in the correct same order as they are displayed on the dendrogram
+labels_colors(iris.dend) <- colors_by_species #color by species
+labels_cex(iris.dend) <- 0.30 #make font smaller so it is easier to see 
+plot(iris.dend)
+```
+
+
+
+
+
+
+
+### 3. Cut your UPGMA dendrogram to yield 3 clusters, and plot the dendrogram color the branches according to cluster assignment. [2 pts]
+
+
+
+```{r}
+plot(color_branches(iris.dend, k=3))
+```
+
+
+
+
+
+
+
+
+
+
+### 4. Carry out k-medoids clustering of the iris specimen using the distance matrix from Problem 1, specifying three clusters [2 pts]
+
+```{r}
+iris.kmedoids <- pam(euc.iris, k=3) #create 3 clusters
+visualize.clusters <- iris.kmedoids$cluster
+table(visualize.clusters) #to visualize the number in each cluster. 
+```
+
+
+
+
+
+
+### 5. Generate a plot of the iris specimens in the space of the first two principal components (based on the covariance matrix). Color the specimens by their cluster membership according to the k-medoids clustering you carried out in the previous problem, and specify their shape by the Species label. [4 pts]
+
+```{r}
+#to create the PCA
+iris.pca <- prcomp(iris.no.species, center=TRUE, retx=TRUE) # the default on the prcomp() function is to run a PCA based on the eigen() of the covariance matrix. 
+```
+
+```{r}
+#to draw the plot
+pca.scores.iris.df <- as.data.frame(iris.pca$x) 
+
+Iris.Kmedoids.Clusters <- as.factor(iris.kmedoids$cluster)#to color by the clustering
+
+Species <- iris$Species #to be able to plot shape by Species and have the key have a nice title. 
+
+
+iris.pc1.2 <-
+  pca.scores.iris.df %>%
+  ggplot(aes(x = PC1, y = PC2, color= Iris.Kmedoids.Clusters, shape = Species)) +
+  geom_point() +
+  labs(title = 'Iris Specimens by K-medoid Cluster\n and Species')
+
+iris.pc1.2 #display the plot
+
+```
+
+
+
+
+
+
+
+
+
+
+### 6. Since we know the true Species groupings, it's straightforward to visually inspect the figures you made above to identify mis-clustered samples. By visual inspection, how many of the iris specimens are mis-clustered under the UPGMA clustering? By visual inspection, how many of the specimens are mis-clustered under the k-medoids clustering? [2 pts]
+
+*14 specimen are mis-clustered in the UPGMA and 15 in the k-medoids clusting.*
+
+
+
+EXTRA CREDIT: If you know the true groupings, and can visualize the clustering and its implied groupings, it's relatively straightforward to identify mis-clustered samples. It is a more challenging task to compute this. Show how to compute the mis-clustered samples for the UPGMA and k-medoids clusterings you carried out above. Your solution should be robust to re-orderings of the original data and should not rely on visual inspection [5 pts]
+
+
+
+
+```{r}
+cluster.number <- length(unique(iris$Species))# to determine the number of groups and/or clusters we should create. 
+```
+
+
+```{r}
+iris.no.species <- select(iris, -Species) #remove 'Species' column from the data frame
+iris.matrix <- as.matrix(iris.no.species)
+head(iris.matrix) #make the data frame into a matrix.
+```
+
+
+```{r}
+Species.names <- iris$Species
+rownames(iris.matrix) <- Species.names
+head(iris.matrix) # we can add  back the 'Species' names to each row by adding back the Species column as the row names. 
+dim(iris.matrix)
+```
+
+
+```{r}
+euc.iris <- dist(iris.matrix) #the Euclidean matrix
+head(euc.iris)
+dim(iris.matrix)
+```
+
+
+```{r}
+cluster.iris.hclust <- 
+  hclust(euc.iris, method = 'average')
+iris.cluster.dend <- 
+  as.dendrogram(cluster.iris.hclust) #to create a manipulative dendrogram
+```
+
+```{r}
+count.clusters <- 
+  cutree(iris.cluster.dend, k= cluster.number, order_clusters_as_data = FALSE)
+
+clusters.iris.df <- 
+  data.frame(species= names(count.clusters), cluster = count.clusters)
+
+
+```
+
+```{r}
+cluster.3.species <- list(filter(clusters.iris.df, cluster == 3)$species)
+cluster.3.species
+```
+`
+
+```{r}
+typeof(cluster.3.species)
+class(cluster.3.species)
+
+cluster.3.species <- unlist(cluster.3.species)
+```
+
+```{r}
+typeof(cluster.3.species)
+class(cluster.3.species)
+cluster.3.species
+```
+
+
+```{r}
+cluster.3.df <- as.data.frame(cluster.3.species)
+cluster.3.df
+```
+
+```{r}
+length(cluster.3.df$cluster.3.species == 'versicolor')
+```
+
+
+
+
+```{r}
+list.species <- unique(iris$Species)
+list.of.clusters <- list()
+for (i in list.species) {
+  to.view <- filter(clusters.iris.df, cluster == i)$species 
+  to.append <- cat(as.character(to.view), quote=FALSE, spe='\n');
+  list.of.clusters <- c(list.of.clusters, to.append)
+}
+list.of.clusters
+```
+
+```{r}
+?append()
+```
+
+
+Plan:
+create a for loop that compares the specimens in each of my clusters to each of my species. Whichever has the highest number of similarities we name that cluster to that species name. Then we compare the specimens in cluster to affiliated species and tally the total number of differences. Do this for all three clusters. And repeat this for the kmedoids clusters. 
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,189 @@
+title: "Bio 723: Assignment 05 -- Matrices and multiple regression"
+author: "Chelsea Shoben CRS70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+Bio 723: Assignment 05
+
+
+#Problems
+Each of the problems below is worth 4 pts.
+
+### 1. Write a function, mean.vector(X), that takes a matrix of real values (doubles) and calculates the column means.
+
+```{r}
+
+A <- matrix(1:16, nrow=4)
+
+```
+
+
+
+```{r}
+
+mean.vector <- function(x) {
+  k <- 1/(nrow(x))
+  one.vector <- matrix(1:1, nrow=nrow(x))
+  m <- k * (t(one.vector) %*% x)
+  
+  
+m
+
+  
+  #mean.list <- rep(NA, ncol(x))
+  #for (i in 1:ncol(x)) {
+   # mean.list[i] <- mean(x[,i])
+  #}
+#mean.list
+}
+A
+mean.vector(A)
+
+```
+
+
+
+
+
+
+
+### 2. Write a function, deviation.matrix(X), that takes a matrix of real values and returns a matrix the represents each values deviation from it’s respective column mean.
+
+
+
+```{r}
+deviation.matrix <- function(x) {
+  one.vector <- matrix(1:1, nrow=nrow(x))
+  M <- one.vector %*% mean.vector(x)
+  x - M
+  
+}
+deviation.matrix(A)
+```
+
+
+
+
+
+
+
+### 3. Write a function covariance.matrix(X), that takes as input a matrix of real values (variables in columns) and returns a covariance matrix.
+
+```{r}
+covariance.matrix <- function(x) {
+  n <- nrow(x) - 1 #this is like the n-1 in the denominator
+  k <- 1/n #this will be used to multiply the D^T, D dot product
+  D <- deviation.matrix(x) #The deviation matrix of the matrix. 
+
+  S <- k * (t(D) %*% D)
+S
+
+
+  
+}
+
+covariance.matrix(A)
+cov(A) # to check my answer
+```
+
+
+
+
+
+
+### 4. Write a function correlation.matrix(X), that takes as input a matrix of real values (variables in columns) and returns a correlation matrix.
+
+```{r}
+correlation.matrix <- function(x) {
+  diag.vector <- diag(covariance.matrix(x)) #make a vector containing only the diagonal items from the matrix. 
+  Sii <- 1/sqrt(diag.vector)
+  V <- diag(Sii)
+  V %*% covariance.matrix(x) %*% V
+  }
+correlation.matrix(A)
+cor(A) #check my answer
+
+
+```
+
+
+
+
+
+
+
+
+
+### 5. Write a function multiple.regression(X, y), that takes as input a matrix of real values (X; the explanatory variables in columns) and a real-valued vector y (the dependent variable), and which returns a list giving: 
+### 1) the regression coefficients for the multiple regression of y on X, and 
+### 2) the coefficient of determination for the regression.
+
+
+
+
+```{r}
+#needed to solve below
+B <- matrix(1:4, nrow=2)
+C <- c(1:4)
+
+vec.dot <- function(x,y) {
+  products <- x * y
+  sum(products)
+}
+
+vec.length <- function(x){
+  sqrt(vec.dot(x,x))
+
+}
+B  
+
+```
+
+```{r}
+solve(B)
+solve(t(B) %*% B)
+```
+
+
+
+
+```{r}
+multiple.regression <- function(x,y) {
+  holding <- solve(t(x) %*% x) #((X^T)X)^1
+  b <- (holding %*% t(x)) * y
+  
+  y.hat <- x %*% b
+  length.y.hat <- vec.length(y.hat)
+  length.y <- vec.length(y)
+  R <- (length.y.hat) / (length.y)
+  
+list('#1 regression coefficients', b, '#2 coefficient of determination', R)
+}
+
+multiple.regression(B, C)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

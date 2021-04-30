@@ -1,0 +1,265 @@
+
+---
+title: "Bio 723: Assignment 07 -- Principal Component Analysis"
+author: "Chelsea Shoben crs70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+
+
+# Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+## Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) and the knit HTML via Sakai.
+
+# Problems
+
+## 1. Do a PCA analysis on the iris data set with all three species pooled together, based on the covariance of the sepal and petal variables. Generate a plot showing the projection of the specimens on the first two PC axes as shown below. Represent the specimens from a given species with different colors and shapes [4 pts]
+
+```{r}
+iris
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+library(GGally)
+library(cowplot)
+library(ggplot2)
+```
+
+```{r}
+names(iris)
+```
+
+
+
+```{r}
+drop.species <- iris %>%
+  select(-Species)
+```
+
+
+```{r}
+iris.pca <- prcomp(drop.species, center=TRUE, retx=TRUE)
+
+summary(iris.pca)
+```
+
+
+
+```{r}
+pca.iris.dataframe <- as.data.frame(iris.pca$x)
+
+pca.iris.dataframe
+```
+
+```{r}
+Species <- iris$Species
+cbind(pca.iris.dataframe, Species)
+```
+
+
+
+
+```{r}
+
+coord.system.iris <- coord_fixed(ratio=1, xlim=c(-4,4), ylim=c(-4,4))
+
+iris.pc1pc2 <-
+  pca.iris.dataframe %>%
+  ggplot(aes(x=PC1, y=PC2, color = Species, shape = Species)) +
+  geom_point() +
+  coord.system.iris
+
+iris.pc1pc2
+```
+
+
+
+
+
+
+
+## 2. What fraction of the variance in the data is captured by PC1? What fraction of the variation is captured by PC2? [1 pt]
+
+```{r}
+summary(iris.pca)
+```
+
+92.46% of the variance is captured by PC1. 
+5.307% is captured by PC2. 
+
+
+
+
+
+## 3 Create a biplot, simulatenously depicting the samples and variables in the space of PCs 1 and 2, by modifying the plot you created in problem 1 to include a vector depiction of the PC loadings [3 pts]
+
+
+```{r}
+# Calculate factor loadings
+Eigen.iris <- iris.pca$rotation
+diag.matrix <- diag(iris.pca$sdev)
+
+iris.loadings <- Eigen.iris %*% diag.matrix
+iris.loadings
+
+
+loadings.iris.1and2 <- 
+  data.frame(iris.loadings[,1:2]) %>%
+  rename(PC1.iris = X1, PC2.iris = X2) %>%
+  mutate(variable = row.names(iris.loadings))
+
+loadings.iris.1and2
+```
+
+
+
+```{r}
+library(ggrepel)
+```
+
+
+```{r}
+biplot.prcomp <- ggplot(data=pca.iris.dataframe, aes(x=PC1, y=PC2, color = Species)) +
+  geom_point() +
+  coord.system.iris +
+  geom_segment(data=loadings.iris.1and2,
+               aes(x=0, y=0, xend = PC1.iris, yend= PC2.iris), color = 'black', 
+               arrow=arrow(angle=15, length=unit(0.1,'inches'))) + 
+  geom_text_repel(data=loadings.iris.1and2, aes(x=PC1.iris, y = PC2.iris, label=variable), color='black', nudge_x = -.2, nudge_y=0)
+
+biplot.prcomp
+  
+```
+
+
+
+
+## 4.Calculate the factor loadings the iris PCA. Which of the original variable(s) contribute most to PC1? Which of the original variable(s) contribute most to PC2? [3 pts]
+
+
+```{r}
+iris.loadings
+```
+Petal length contributes the most to PC1. Sepal Width contributes the most to PC2. 
+
+
+
+
+
+
+## 5. Carry out PCA of the iris data set again, using the correlation matrix rather than covariance matrix. Based on this new PCA, generate another biplot like the one you created in Problem 4 and recalculate the factor loadings. Does your perception of the relative contribution of the original variables to the PCs change when you carry out PCA on the correlation matrix? If so, how? [6 pts]
+
+
+
+Using the original, raw data: 
+```{r}
+iris.prcomp.cor <- prcomp(drop.species, scale.=TRUE) #scale.=TRUE tell it to use the correlation matrix. 
+iris.prcomp.cor
+
+```
+
+```{r}
+pca.cor.iris.dataframe <- as.data.frame(iris.prcomp.cor$x)
+pca.cor.iris.dataframe
+```
+When trying to make a data frame of the cor matrix or the original data after being ran through princomp(), the data frame is 0 rows. 
+
+
+
+```{r}
+Species <- iris$Species
+cbind(pca.cor.iris.dataframe, Species) #add the Species variable back to the data
+```
+
+
+
+```{r}
+coord.system.iris <- coord_fixed(ratio=1, xlim=c(-4,4), ylim=c(-4,4))
+
+iris.cor.pc1pc2 <- 
+  pca.cor.iris.dataframe %>%
+  ggplot((aes(x=PC1, y=PC2, color = Species, shape = Species))) +
+  geom_point() +
+  coord.system.iris
+
+iris.cor.pc1pc2
+```
+
+```{r}
+# Calculate factor loadings
+Eigen.iris <- iris.prcomp.cor$rotation
+diag.matrix <- diag(iris.prcomp.cor$sdev)
+
+iris.cor.loadings <- Eigen.iris %*% diag.matrix
+iris.cor.loadings
+
+
+loadings.iris.cor.1and2 <- 
+  data.frame(iris.cor.loadings[,1:2]) %>%
+  rename(PC1.iris = X1, PC2.iris = X2) %>%
+  mutate(variable = row.names(iris.cor.loadings))
+
+loadings.iris.cor.1and2
+
+```
+
+
+```{r}
+biplot.princomp <- ggplot(data=pca.cor.iris.dataframe, aes(x=PC1, y=PC2, color = Species)) +
+  geom_point() +
+  coord.system.iris +
+  geom_segment(data=loadings.iris.cor.1and2,
+               aes(x=0, y=0, xend = PC1.iris, yend= PC2.iris), color = 'red', 
+               arrow=arrow(angle=15, length=unit(0.1,'inches'))) + 
+  geom_text_repel(data=loadings.iris.cor.1and2, aes(x=PC1.iris, y = PC2.iris, label=variable), color='black', nudge_x = 0, nudge_y=-0.25, box.padding=0.5)
+
+biplot.prcomp
+biplot.princomp
+```
+
+The loadings change based on the method used to create the PCA. 
+```{r}
+iris.loadings
+iris.cor.loadings
+
+
+```
+
+The loadings appear to be more evenly distributed. 
+
+Petal length appears to be highly correlated with PC1 in the first PCA, but the PCA made from the correlation matrix, the Petal Length appears to be contributing less to PC1. 
+
+Sepal width appears more correlated with PC2 in the correlation matrix PCA, which Petal width and Sepal length remain nearly unchanged. 
+
+The data points themselves appear warped when compared across the two biplots. 
+
+
+
+
+
+
+
+
+
+
+
+
+

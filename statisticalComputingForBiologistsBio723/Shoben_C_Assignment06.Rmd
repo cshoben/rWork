@@ -1,0 +1,409 @@
+---
+title: "Bio 723: Assignment 06 -- More on Regression"
+author: "Chelsea Shoben CRS70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+
+
+#Bio 723: Assignment 06
+
+Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately “computable” is to ask yourself “If I added or changed observations to this data set, would my code still compute the right solution?”
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+#Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately “computable” is to ask yourself “If I added or changed observations to this data set, would my code still compute the right solution?”
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) and the knit HTML via Sakai.
+
+#Problems
+#Bivariate regression
+
+#1.Using the lion data, fit a regression model relating age to the proportion of black pigmentation. Augment the lion data frame using the broom::augment function as described in the workbook. Then answer the following questions:
+
+```{r}
+#libraries
+
+library(tidyverse)
+library(ggExtra)
+library(broom)
+
+lions <- read_csv("https://github.com/bio304-class/bio304-course-notes/raw/master/datasets/ABD-lion-noses.csv")
+
+```
+
+```{r}
+ggplot(lions, aes(x = proportionBlack, y = ageInYears)) + 
+  geom_point() +
+  geom_smooth(method="lm", color = 'red')
+```
+
+
+
+```{r}
+fit.lion <- lm(ageInYears ~ proportionBlack, data = lions)
+fit.lion
+```
+
+
+
+```{r}
+lion.augmented <- augment(fit.lion, lions)
+ggplot(lion.augmented, aes(proportionBlack, .resid)) +
+  geom_point()+
+  geom_hline(yintercept=0, color='firebrick', linetype='dashed')
+```
+
+```{r}
+
+head(lion.augmented[order(lion.augmented$proportionBlack, decreasing = FALSE),])
+```
+
+
+
+
+
+##1a. Based on the regression of age on proportion of black pigmentation, if you observed a male lion with no black pigmentation on its nose, how old would you predict it to be? [1 pt]
+
+A little over a year old (+ or - a year)
+
+
+##1b. What is the predicted increase in age for a 10% increase in black pigmentation? [1 pt]
+
+1.25 years
+
+
+##1c. Calculate the interquartile range (IQR) for the residuals of the model fit [1 pt]
+
+```{r}
+lion.resid <- lion.augmented$.resid
+lion.resid
+IQR.r <- IQR(lion.resid)
+IQR.r
+```
+
+
+
+## 1d. Use dplyr::mutate to add another column called resid.outlier to lions.augmented. resid.outlier should be TRUE if the absolute value of the corresponding residual is more than 1.5 * IQR [1 pt]
+
+
+```{r}
+typeof(lion.augmented)
+class(lion.augmented)
+```
+
+```{r}
+head(lion.augmented)
+```
+
+
+```{r}
+lion.augmented.plus <- mutate(lion.augmented, resid.outlier =  NA)   #Make an empty column.        
+```
+
+
+```{r}
+boolean.resid <- ifelse (abs(lion.resid) > (1.5*IQR.r), TRUE,FALSE) #make BOOLEAN to put into the empty column created.
+
+```
+
+
+```{r}
+lion.augmented.plus$resid.outlier <- boolean.resid
+
+head(lion.augmented.plus)
+
+```
+
+
+##1e. Use the resid.outlier column from the previous question to draw a plot like the one below, highlighting potential outliers in regression model. [1 pt]
+
+```{r}
+ggplot(lion.augmented.plus, aes(x = proportionBlack, y = ageInYears, color=resid.outlier)) + 
+  geom_point() +
+  geom_smooth(method="lm", color = 'red')+
+  labs(x = 'Proportion Black Pigmentation', y = 'Age(years)', title = 'Regression of Age on Nose Pigmentation for Male Lions')
+```
+
+
+
+
+#Multiple regression
+The HistData package is required to have access to the data for this assignment. Install HistData via one of the standard mechanisms.
+
+The GaltonFamilies data set in the HistData package lists observations for heights of parents and their adult offspring for 934 children in 205 families, a famous data set collected by Francis Galton (Galton, F. (1886). Regression Towards Mediocrity in Hereditary Stature. Journal of the Anthropological Institute, 15, 246-263).
+
+
+
+
+#2 Load the HistData package and examine the GaltonFamilies data set.  
+
+```{r}
+library(HistData)
+summary(HistData::GaltonFamilies)
+head(HistData::GaltonFamilies)
+```
+
+# 2 cont. Using cowplot create a single figure with three sub-figures:
+## A) the distribution of height for all offspring;
+## B) overlapping density plots giving the height distributions for male and female offspring separately; 
+## C) boxplots of height for male and female children separately [3 pts]
+
+```{r}
+library (ggplot2)
+library (cowplot)
+
+```
+
+```{r}
+gg_hist_childHeight <- ggplot(GaltonFamilies) +
+  geom_histogram(aes(x=childHeight), bins = 15) +labs(title = 'Distribution of Child Heights', x = 'Child Height') + theme(plot.title = element_text(size = 10))
+
+gg_density_childHeight <- ggplot(GaltonFamilies) +
+  geom_density(aes(x=childHeight, fill = gender), alpha=0.25) + 
+  labs(title='Child Height Distribution \n by Gender', x = 'Child Height', fill='Gender') + 
+  theme(plot.title = element_text(size=10))
+
+
+
+gg_box_childHeight <- ggplot(GaltonFamilies) +
+  geom_boxplot(aes(x = gender, y = childHeight, color = gender)) +
+  labs (title='Child Height Boxplot \n by Gender', x = 'Gender', y = 'Child Height', fill = 'Gender') +
+  theme(plot.title = element_text(size=10))
+
+
+plot_grid(gg_hist_childHeight, gg_density_childHeight, gg_box_childHeight, ncol=2, labels=c('A', 'B', 'C'))
+```
+
+
+#3 Create two 3D scatter plots, one each for male and female offspring, showing the relationship between offspring height and mother and fathers height. [2 pts]
+
+```{r}
+library(tidyverse)
+library(broom)
+library(scatterplot3d)
+```
+
+```{r}
+femalechild.galtonfamilies <- GaltonFamilies[GaltonFamilies$gender == 'female',]
+
+malechild.galtonfamilies <- GaltonFamilies[GaltonFamilies$gender == 'male',]
+
+scatterplot3d::scatterplot3d(femalechild.galtonfamilies$mother, femalechild.galtonfamilies$father, femalechild.galtonfamilies$childHeight, angle=40, main='Female Child Height Relative to\n Mother and Father Height', xlab = 'Mother Height', ylab = 'Father Height', zlab = 'Female Child Height', box = FALSE )
+```
+
+```{r}
+scatterplot3d::scatterplot3d(malechild.galtonfamilies$mother, malechild.galtonfamilies$father, malechild.galtonfamilies$childHeight, angle=40, main='Male Child Height Relative to\n Mother and Father Height', xlab = 'Mother Height', ylab = 'Father Height', zlab = 'Male Child Height', box = FALSE )
+```
+
+
+#4 For male offspring, fit a multiple regression of offspring height on father and mother's height. Write out the predicted model with the corresponding coefficients in the form Oˆmale=a+b1F+b2M where O, F and M are offspring, father's, and mother's height. What fraction of the variation in offspring height does the model capture? [2 pts]
+
+```{r}
+male.regression <- lm(childHeight ~ father + mother, data = malechild.galtonfamilies)
+male.regression
+summary(male.regression)
+```
+
+Based on the R-squared value, it captures 23.47%
+
+
+#5 For female offspring, fit a multiple regression of offspring height on father and mother's height. Write out the predicted model with the corresponding coefficients in the form Oˆfemale=a+b1F+b2M where O, F and M are offspring, father's, and mother's height. What fraction of the variation in offspring height does the model capture? [2 pts]
+
+```{r}
+female.regression <- lm(childHeight ~ father + mother, data = femalechild.galtonfamilies)
+female.regression
+summary(female.regression)
+```
+According to the R-squared value it captures 26.49% of the variance. 
+
+
+
+# 6. What is the predicted height of a male child, if the mother was 5 ft tall and the father was 6 ft tall? What is the predicted height of a female child from the same parents? [2 pt]
+
+```{r}
+father.inches <- 6*12
+mother.inches <- 5*12
+
+predicted.male <- 19.3128 + 0.4176*father.inches + 0.3188*mother.inches
+
+predicted.female <- 18.8336 + 0.3725*father.inches + 0.3035*mother.inches
+
+predicted.male
+predicted.female
+```
+
+
+LOESS regression
+
+
+# 7. Write an R function that genereates a plot that simultaneously illustrates trends in both approval and disapproval ratings for Barack Obama, showing both the raw data and corresponding LOESS fits. Use colors and/or shapes to distinguish the two trends. Make sure both your x- and y-axes are scaled to show the full range of the data. Label your axes and create a title in the plot. Aim for a 'publication quality' figure [3 pts]
+
+```{r}
+polls <- read_delim('https://github.com/Bio723-class/example-datasets/raw/master/obama-polls-2008-2011.txt',delim="\t", trim_ws=TRUE)
+```
+
+```{r}
+#for some reason it would not knit the code below. It was running fine on my end but chose to comment it out for submission purposes. 
+
+#polls.app.and.dis <- 
+  #polls %>%
+  #ggplot(aes(x = date)) + 
+  #geom_point(aes(y = Approve), color='firebrick', alpha=0.5, pch=1) +
+  #geom_point(aes(y = Disapprove), color = 'blue', alpha=0.5, pch=1) + 
+  #geom_smooth(aes(y= Approve), color='red', method="loess", se=FALSE) +
+  #geom_smooth(aes(y = Disapprove), color='royalblue', method="loess", se=FALSE) +
+  #labs(x = 'Date', y = 'Opinion', title = 'Barack Obama Opinion Ratings, 2008-2012') +
+  #theme_minimal() 
+
+#polls.app.and.dis
+  
+```
+
+
+Logistic regression
+
+Bumpus (1898) described a sample of house sparrows which he collected after a very severe storm. The sample included 136 birds, sixty four of which perished during the storm. Also included in his description were a variety of morphological measurements on the birds and information about their sex and age (for male birds). This data set has become a benchmark in the evolutionary biology literature for demonstrating methods for analyzing natural selection. The bumpus data set is available from the class website as a tab-delimited file bumpus-data.txt.
+
+Reference: Bumpus, H. C. 1898. The elimination of the unfit as illustrated by the introduced sparrow, Passer domesticus. (A fourth contribution to the study of variation.) Biol. Lectures: Woods Hole Marine Biological Laboratory, 209-225.
+
+```{r}
+birds <- read_delim('https://github.com/bio304-class/bio304-course-notes/raw/master/datasets/bumpus-data.txt', delim ='\t', trim_ws =TRUE)
+```
+
+```{r}
+head(birds)
+```
+
+
+# 8. Measures like weight and skeletal dimensions are often proxies for body size. Fit logistic regression models for: a) survival as a function of weight; and b) survival as a function of skull width and report the coefficients of the models. [3] pts]
+
+
+```{r}
+birds.boolean <- as.numeric(birds$survived)
+birds.boolean #let's look at it. 
+birds.numeric <- birds #make a copy to mutate
+birds.numeric$survived <- birds.boolean
+head(birds.numeric)
+
+```
+
+
+
+```{r}
+fit.survival.weight <- glm(survived ~ weight.g, family = binomial, birds.numeric)
+
+fit.survival.skull <- glm(survived ~ width.skull.in, family=binomial, birds.numeric)
+
+tidy(fit.survival.weight)
+tidy(fit.survival.skull)
+```
+The 'estimates' above are the coefficients. 
+
+
+# 9. Illustrate the two regression models from the previous question using scatter plots overlain with logistic regression curves. Combine the two plots as subplots A) and B) in a single figure, using cowplot. [3 pt]
+
+```{r}
+#make the scatter plots
+weight.plot <- ggplot(data = birds.numeric, aes(x = weight.g, y = survived)) +
+  geom_jitter(width = 0.1, height = 0.05, color = 'pink') +
+  labs(title = 'Bird Survival as a Function of Weight') +
+  theme(plot.title = element_text(size=10))
+
+skull.plot <- ggplot(data = birds.numeric, aes(x = width.skull.in, y = survived)) +
+  geom_jitter(width = 0.1, height = 0.05, color = 'green') +
+  labs(title = 'Bird Survival as a Function of\n Skull Width') +
+  theme(plot.title = element_text(size=10))
+
+
+```
+
+
+
+```{r}
+weight.g <- seq(21, 32, 0.1)
+
+predicted.s.weight <- predict(fit.survival.weight, newdata = data.frame(weight.g = weight.g), type = 'response')
+
+
+s.logistic.weight.plot <- weight.plot + geom_line(data = data.frame(weight.g = weight.g, survived = predicted.s.weight), color = 'darkgreen', size = 1)
+
+width.skull.in <- seq(0.55, 0.66, 0.001)
+
+predicted.s.skull <- predict(fit.survival.skull, newdata = data.frame(width.skull.in = width.skull.in), type = 'response')
+
+
+s.logistic.skull.plot <- skull.plot + geom_line(data = data.frame(width.skull.in = width.skull.in, survived = predicted.s.weight), color = 'darkblue', size = 1)
+
+
+
+plot_grid(s.logistic.weight.plot, s.logistic.skull.plot)
+```
+
+
+
+# 10. Use dplyr::group_by and dplyr::do() to fit logistic regressions of survival as a function of weight for male and female birds separately, using broom::tidy to return a table of coeffficients (and other parameters) from the model fits [3 pts]
+
+```{r}
+
+
+grouped.birds <- 
+  birds.numeric %>% 
+  group_by(sex) %>%
+  do(fits = glm(survived ~ weight.g, family = binomial, data = .))
+
+tidy(grouped.birds$fits[[2]])
+class(grouped.birds)
+typeof(grouped.birds)
+```
+
+
+
+# 11. Using faceting to produce a figure illustrating the logistic regression of survival as a function of weight for male and female birds separately [2 pt]
+
+
+```{r}
+faceted.plot.sex <- ggplot(birds.numeric, aes(x = weight.g, y=survived, color = sex)) +
+  geom_jitter(width = 0, height = 0.06) +
+  geom_smooth(method='glm', method.args = list(family='binomial')) +
+  labs(x = 'Weight in Grams', y = 'P(Survived)') +
+  facet_wrap(~sex)
+```
+
+```{r}
+
+weight.g <- seq(21, 32, 0.1)
+
+
+predicted.grouped.birds <- predict(grouped.birds, newdata = data.frame(weight.g = weight.g), type = 'response')
+
+
+final.plot <- faceted.plot.sex + 
+  geom_line(data = data.frame(weight.g = weight.g, survived = predicted.grouped.birds))
+```
+
+I was unable to knit due to the error above. I was not able to figure out which class predit() needed it to be to run the code. 
+
+
+
+
+
+
+
+
+
+
+
+

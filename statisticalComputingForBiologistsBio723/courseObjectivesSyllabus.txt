@@ -1,0 +1,38 @@
+Students who complete Bio 723 will:
+
+Learn key concepts and methods in multivariate statistics and machine learning that are commonly applied in the biological sciences
+
+Develop a working knowledge of the R statistical computing language/environment
+
+Gain experience with tools to conduct reproducible computational and statistical research
+
+Develop skills to work efficiently with large data sets, in tasks such as filtering, restructuring, and data visualization.
+
+
+Week 0: Installing R, Getting Started with R
+
+Week 1: Introduction to course; Data types and data structures, functions and control flow
+
+Week 2: Data filtering, transformation, and tidying
+
+Week 3: Data visualization in R
+
+Week 4: Introduction to linear algebra; data as vectors; geometry of vector spaces
+
+Week 5: Linear regression as a projection operation
+
+Week 6: Non-linear curve fitting
+
+Week 7: Principal components analysis and singular value decomposition
+
+Week 7: Canonical variates analyses and other discriminant analysis methods
+
+Week 9: Tree and graphs -- clustering methods, multidimensional scaling
+
+Week 10: Randomization and Monte Carlo Methods: jackknife, bootstrap, and permutation tests
+
+Week 11: Simulation
+
+Week 12: Building bioinformatics pipelines I
+
+Week 13: Building bioinformatics pipelines II

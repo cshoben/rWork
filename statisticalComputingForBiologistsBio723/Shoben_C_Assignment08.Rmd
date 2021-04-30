@@ -1,0 +1,176 @@
+---
+title: "Bio 723: Assignment 08 -- Singular value decomposition"
+author: "Chelsea Shoben crs70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+
+
+#Bio 723: Assignment 08
+Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) and the knit HTML via Sakai.
+
+# Problems
+
+## 1. Write a function, svd_img(), that automates the creation of a lower dimensional approximation of a grayscale image using SVD [5 pts]
+
+## Function requirements:
+
+## Your function should take as input a matrix representing the original image and an integer specifying the approximating dimension - i.e. function will be called as .
+
+## Your function should return a list of two objects: 1) an array representing the approximated image; and 2) an array representing the difference between the original and approximating images (i.e. original - approximation).
+
+```{r}
+library(imager)
+
+bicky <- load.image("C:/Users/shobe/OneDrive/Pictures/Bicky_grayscale_0380.jpg")
+```
+
+```{r}
+plot(bicky)
+```
+
+
+```{r}
+svd_img <- function(image,approx.number) {
+  image.gray <- grayscale(image)
+  image.matrix <- as.matrix(image.gray)
+  image.svd <- svd(image.gray)
+  U <- image.svd$u
+  S <- diag(image.svd$d)
+  Vt <- t(image.svd$v)
+  
+  U.approx.number <- U[,1:approx.number]
+  S.approx.number <- S[1:approx.number, 1:approx.number]
+  Vt.approx.number <- Vt[1:approx.number,]
+  
+  approx.final <- U.approx.number %*% S.approx.number %*% Vt.approx.number
+  
+  a <- plot(as.cimg(approx.final))
+  
+  img.diff <- image.matrix - approx.final
+  nr <- nrow(img.diff)
+  nc <- ncol(img.diff)
+  b <- plot(as.cimg(img.diff))
+  
+  return(b)
+}
+```
+
+```{r}
+svd_img(bicky, 20)
+```
+
+
+
+
+
+### 1a. Test your function on various images using a variety of approximating dimensions (e.g. 5,10, 25, 50, 100, 250) on the chesterbw.jpg image. When analyzing chesterbw.jpg, at some approximating dimensions you'll notice interesting artifacts. How do these relate to the original image? [3 pts]
+
+```{r}
+nectar <- load.image("C:/Users/shobe/OneDrive/Pictures/bassnectar.jpg")
+science <- load.image("C:/Users/shobe/OneDrive/Pictures/science.jpg")
+chester <- load.image("C:/Users/shobe/OneDrive/Documents/Bio723_R/chesterbw.jpg")
+
+```
+
+```{r}
+plot(science) #see what it looks like and make sure it loaded in correctly. 
+plot(nectar)
+```
+
+
+```{r}
+svd_img(science, 10)
+```
+
+
+```{r}
+svd_img(nectar, 100)
+svd_img(nectar, 20)
+```
+
+```{r}
+svd_img(nectar,50)
+```
+
+```{r}
+svd_img(chester, 5)
+svd_img(chester, 10)
+svd_img(chester, 25)
+```
+
+```{r}
+svd_img(chester, 50)
+svd_img(chester, 100)
+svd_img(chester, 250)
+plot(chester)
+```
+
+At lower approximations the noise starts to capture the negative of the original image.
+
+
+
+
+### 1b. What is the lowest approximating dimension where you would you consider the image to be recognizable as a dog? [1 pt]
+
+```{r}
+svd_img(chester, 15)
+```
+Maybe you can kinda tell it's a dog as lower approximatation but it I feel most comfortable at the 15 mark. 
+
+
+
+
+
+### 1c. At what approximating dimension would you judge the image to be 'close enough' to the original by the casual observer? What is the storage saving of this approximation relative to the original image? [3 pts]
+
+```{r}
+svd_img(chester, 100)
+plot(chester)
+```
+I can't tell a difference between these two images. 
+
+```{r}
+#original image uses this many integer values
+
+original <- 605 * 556
+approx.100 <- (100 * 556) + (100*605) + 100
+
+original - approx.100 # the savings in integer values
+```
+
+
+
+
+
+### 1d. How does the difference array change as the approximating dimension changes? Is there a particular type of image information that seems most prominent in the difference array? [3 pts]
+
+The difference array looks more like the original picture when the approximating dimensions are lower. The difference array appears to be more 'noise' at higher approx numbers. 
+
+It seems like any drastic change from white ot black (or light to dark) is captured by the difference array. It also reminds me of this sand effect my first smart phone could do with pictures (impressive technology in 2006). 
+
+
+
+
+
+
+
+

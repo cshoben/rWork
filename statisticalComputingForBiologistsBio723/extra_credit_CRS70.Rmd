@@ -1,0 +1,280 @@
+---
+title: "Extra Credit -PCA"
+author: "Chelsea Shoben crs70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+---
+
+
+###Assignment
+Identify a publication from the biomedical sciences literature that employs one or more of the following multivariate statistical techniques, and for which source data are provided by the authors.
+
+Multiple regression
+Principal Component Analysis
+Eigenanalysis or Singular Value Decomposition used in different context than PCA
+Canonical Variate Analysis (or another form of linear discrimant analysis)
+Hierarchical or K-means clustering
+
+Write a short report discussing the paper's motivation, the use of these techniques in the paper and how the application of these methods contributed to the author's conclusions or understanding of the data. Your report should touch on any assumptions (explicit or implicit) that are relevant to the statistical analysis and discuss whether you feel the author's conclusions are justified or well supported (again based on the statistical anlaysis). Then, using the source data, show how to recapitulate one or more of the main analyses (e.g. a key figure) in the paper in R using one of the methods above.
+
+The paper of interest may have used a method similar to, but not exactly the same as one of the methods we covered in class. That is generally acceptable, but please check with the instructor.
+
+Your report and analysis should be submitted as an R Markdown document (both in raw and knitted form). Include a proper citation to the original paper and a link to the source data.
+
+
+
+## Report 
+
+Paper used was received from https://onlinelibrary.wiley.com/doi/full/10.1111/mec.14712
+
+Citation:
+
+Nigenda-Morales, S.F., et al., Transcriptomic analysis of skin pigmentation variation in the Virginia opossum (Didelphis virginiana). Mol Ecol, 2018. 27(12): p. 2680-2697.
+
+
+
+Data available at
+https://datadryad.org/resource/doi:10.5061/dryad.3gr233c
+
+
+
+The overall goal of this paper was to explore skin pigmentations relationship to gene expression patterns. The authors sought out to test  Gloger's rule which is that pigmentation patterns seen across animals follow a pattern of geographic location. Reasons for this pattern could be driven by thermoregulation, UV protection, camouflage, and immunity. Darker pigmentation being more often seen in tropical climates. 
+
+This study used skin samples from opossums whose populations ranged across climates (temperature and humidity). Their use of a non-model organism was to deepen the understanding of the relationship between molecular mechansims and pigmentation as well as the evolution of this trait. 
+
+Transcript-wide gene expression data was collected from opossums from three different populations residing in Morelos Mexico, Yucatan Mexico, and South Carolina US. Based on pigmentation data collected during skin sampling, opossums collected from Mexico were deemed pigmented and those from the US depigmented. 
+
+The samples underwent an RNA extraction and RNA sequencing. An goal was to see if variability in this expression data supported Golger's rule. After quality check, mapping, filtering, and normalization, a principal component analysis (PCA) was performed on the gene expression data to assess correlated variation across the samples. 
+
+The PCs from the PCA were used to first ensure that the fact that all the pigmented samples came from the same population was not confounding the results (enrichment analysis). The enrichment analysis revealed the most negative loading in PC1 were contained genes involved in pigmentation and oxidation-reduction process. The genes with the highest positive loadings contained many genes involved in immune response and defence response.. Also, with the PCA it is possible to visually see how the individuals/samples cluster and if that clustering is surprising. The samples clustered by population as well as pigmentation. 
+
+The authors conclude that the lower pigmentation is associated with higher expression of genes related to immune response. These are the samples clustering to the right side of PC1. They also conclude that pigmentation is positively associated with expression of melancytic genes. The discussion spends some time mentioning relationships between the immune system and melanocytes, specifically Gloger's rule proposing that hotter climates with more pathogens require increased pigmentation, an autoimmune condition termed vitiligo (immune cells attack melanocytes), and previous studies that suggest melanin production may have pleiotrophic effects on genes that involve the immune system. 
+
+The paper does point out that these results should be taken with 'caution' due to their small sample size. And while the authors try to prove that there is not a confouding effect due to a single population representing the depigmented side, they still admit it could have a potential effect. They mentioned that the samples were taken from a smal area and while they opposums may not have appeared sick, it could still be a factor. One no explicit assumption that I though about was the sample size of females. I am not personally familiar with any relationships between sex and pigmentation but the number of female samples was disproportionately small. 
+
+I believe that the results support the conclusion that authors draw however, I think there needs to be a follow up with a larger sample size including more populations and more females. In particular, the discussion suggest an alternative pathway for depigmentation in opposums based on that expression of a single gene. I could image a situation where a population has breed itself to such a phenotype and I feel this hypothesis needs much more data before being proposed. 
+
+
+
+```{r}
+library(tidyverse)
+library(broom)
+library(GGally)
+library(cowplot)
+library(magrittr)
+library(stringr)
+library(ggplot2)
+```
+
+```{r}
+PCA.input <- read_tsv("https://datadryad.org/bitstream/handle/10255/dryad.175693/Nigenda-Morales_normalized_transfomed_counts_PCA_input.txt?sequence=1") #input tsv file from website containing data used to make Figure 1B "Two-dimensional PCA plot of the gene expression profile of all the samples."
+```
+
+
+```{r}
+names(PCA.input) #let's visualize the loaded in data.
+head(PCA.input)
+```
+
+
+```{r}
+PCA.input <- PCA.input %>% rename(Gene = X1) #Rename X1 as Gene so it is more descriptive
+```
+```{r}
+head(PCA.input) #check that column name was renamed. 
+```
+
+*GOAL: need to get the genes the column names and the populations the rows. Need to morph the data. *
+
+```{r}
+data.t <- function(df, genelist) { # a function to morph the data into a layout that suits the needs for the PCA across the transcript levels not across the populations. 
+  num.df <- select_if(df, is.numeric) #selecting only the numbers from the data
+  if (nrow(num.df) == length(genelist)) { #ensure the genelist provided is the same dimentions ad the df of numbers. 
+    tmp <- as.data.frame(t(num.df), stringsAsFactors = F) #transpose these numbers
+    colnames(tmp) <- genelist #take what was a column of names and put as the names of each columns. 
+    rownames(tmp) <- NULL 
+    return(tmp)
+  }
+  else{
+    return("genelist wrong length")
+  }
+}
+```
+
+
+
+```{r}
+transposed.PCA.input <- data.t(PCA.input, PCA.input$Gene) #run the data through the formula. 
+transposed.PCA.input[1:9] #check that the data is as we had hoped, with the values transposed (rows becoming columns, etc.)
+```
+
+
+```{r}
+opossum.pca.fromtransposed <- prcomp(transposed.PCA.input) #run the PCA
+summary(opossum.pca.fromtransposed) #view PCA results and compare values to the publication. The values match those included in the PCA plot.
+```
+
+```{r}
+opossum.pca.df <- as.data.frame(opossum.pca.fromtransposed$x) #place the PC values into a data frame to use for graphing. 
+```
+
+```{r}
+Populations <- colnames(PCA.input) #grab the column names from the untransformed data
+typeof(Populations)
+class(Populations)
+Populations <- list(Populations) #turn this data into a list. This will be useful for later removing any unwanted items through indexing. 
+typeof(Populations)
+class(Populations)
+Populations #this method brought over the word 'Gene' which is not a population type. We will need to remove this. 
+```
+
+
+```{r}
+Populations.vector <- unlist(Populations[[1]][2:14]) #to remove 'Gene' and turn it back into a vector of characters. 
+typeof(Populations.vector)
+class(Populations.vector)
+```
+
+* 
+From publication, we know:
+M is male, F is female. MOR and YUC are considered pigmented. SCA is depigmented. *
+
+
+
+
+
+```{r}
+opossum.pca.df$Pop.and.sex=Populations.vector #add a column in the PCA df containing the population, individual number, and sex information. 
+```
+
+```{r}
+head(opossum.pca.df) #check that the column was added correctly.
+```
+
+
+```{r}
+typeof(opossum.pca.df)
+class(opossum.pca.df)
+```
+
+*The PCA figure included aesthetics that colored or shaped the points to the population and if the opposum was considered pigmented or not. The population information is included in the 'Pop.and.sex' column. The paper simply states that the MOR and YUC are considered pigmented while the SCA is depigmented. For the first issue, we can use R to wrangle the data into the necessary form/infomation. The pigmentation information is not included and will need to be added. *
+
+```{r}
+opossum.pca.df$Population = str_extract(opossum.pca.df$Pop.and.sex, "^[:alpha:][:alpha:][:alpha:]") 
+#to seperate the population information from the pop.and.sex column.
+
+```
+
+```{r}
+opossum.pca.df$Sex = str_extract(opossum.pca.df$Pop.and.sex, "_[:alpha:]") %>%
+  str_replace(., "_", "") #to seperate out the animal sex information into its own column. 
+```
+
+
+```{r}
+head(opossum.pca.df) #let's check it out and see how we did. It successfully separated the information into new columns. We could get rid of the Pop.and.sex column or leave it as it will not affect downstream analysis. 
+```
+
+
+
+
+```{r}
+Pigmentation.column <- function (df.to.add) { # a function to new column named 'Pigmentation' that will fill in the value based on the 'Population' variable of that row. 
+  Pigmentation.vector <- c()
+  for (i in df.to.add$Population) {
+    if (i == 'SCA') {
+      Pigmentation.vector <- c(Pigmentation.vector, 'Depigmented')
+    } 
+    else {
+      Pigmentation.vector <- c(Pigmentation.vector, 'Pigmented')
+    }
+  }
+  df.to.add$Pigmentation = Pigmentation.vector
+  return(df.to.add)
+}
+```
+
+
+```{r}
+final.df <- Pigmentation.column(opossum.pca.df) #run the function above
+```
+
+```{r}
+final.df$pig_ordered = factor(final.df$Pigmentation, levels=c("Pigmented", "Depigmented")) #to order our variables for graphing purposes. 
+```
+
+
+```{r}
+final.df #check that the pigmentation data was added correctly. 
+```
+
+    
+```{r}
+color_graph <- c('#2306DD', '#7CCAD2') #colors from paper's figure. 
+```
+
+
+
+```{r}
+my.theme <-  #all the theme items into one variable. 
+  theme_minimal()+
+  theme(text=element_text(color="black"),
+        plot.background=element_rect(fill="white"),
+        panel.background=element_rect(fill="white", color="black"), 
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        axis.text=element_text(color="black", size=10),
+        axis.ticks.y.left=element_line(color="black"),
+        axis.title.y=element_text(size=12), 
+        legend.key = element_rect(color = 'grey', linetype = 1, size=1.1),
+        legend.text=element_text(size=12), 
+        legend.title = element_text(size=12, face='bold'), 
+        legend.key.size = unit(0.45, 'cm'),
+        legend.box.spacing = unit(0, 'cm'),
+        legend.spacing = unit(0.05, 'cm'),
+        legend.spacing.x = unit(0.05, 'cm'),
+        legend.spacing.y = unit(0.1, 'cm'),
+        legend.margin = margin(0,0,0,0),
+        legend.box.margin = margin(2, 2, 2, 2),
+        panel.border = element_rect(color='black', size=1.8, fill=NA))+
+  theme(aspect.ratio = 1) 
+  
+```
+
+
+
+```{r}
+pc1v2opossum <- #the graph of the PCA data. 
+  ggplot(final.df, aes(shape = Population, x = PC1, y = PC2, fill = factor(ifelse(Sex == 'M', pig_ordered, Sex)))) +
+  geom_point(aes(color = pig_ordered), size = 3) +
+  xlab ('PC1 (20.4% of variance)') +
+  ylab ('PC2 (19.6% of variance)') +
+  my.theme +
+  labs(color='Pigmentation') +
+  scale_color_manual(name = 'Pigmentation', values = color_graph) +
+  scale_fill_manual(name = FALSE, values=c(color_graph , 'white')) +
+  scale_shape_manual(name = 'Population', values=c(21, 24, 22), breaks=c('MOR', 'YUC', 'SCA')) +
+  guides(fill=FALSE) +
+  guides(shape = guide_legend(override.aes=list(shape = c(16, 15, 17)))) 
+  
+
+
+pc1v2opossum 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

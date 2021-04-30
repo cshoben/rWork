@@ -1,0 +1,240 @@
+---
+title: "Bio 723: Assignment 09 - CVA"
+author: "Chelsea Shoben crs70"
+output:
+  html_document:
+    highlight: default
+    fig_caption: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, prompt = FALSE, eval = TRUE, 
+                      warning = TRUE, comment=NA, cache = FALSE,
+                      fig.width = 6, fig.height = 4)
+```
+
+## Bio 723: Assignment 09
+Instructions
+For each of the problems below (except in cases where you are asked to discuss your interpretation) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) via Sakai.
+
+Make your solutions computable
+For each of the problems below (except in cases where you are asked to discuss your interpretaion) write R code blocks that will compute appropriate solutions. A good rule of thumb for judging whether your solution is appropriately "computable" is to ask yourself "If I added or changed observations to this data set, would my code still compute the right solution?"
+
+When completed, submit your R Markdown document (the file with the extension .Rmd) and the knit HTML via Sakai.
+
+## Problems
+The UC Irvine Machine Learning Repository has a dadta set called "wine", which contains information on 13 chemical traits measured on samples of wine representing three different cultivars. Information about this data set is available at: https://archive.ics.uci.edu/ml/datasets/wine.
+
+The raw data is available as a CSV file: wine.csv. The first column of this data is an attribute (1,2,3) giving the cultivar classification; the classifications are given as integers but you'll have to treat this as a factor varaible. The other columns represent the chemical traits described at the data set home page (see above). Note that there are no column names in the data set, so when you read the data in using read_csv() or a similar function you'll have to account for this.
+
+Load in libraries
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(broom)
+library(GGally)
+library(cowplot)
+library(magrittr)
+library(ggforce)
+library(MASS)
+```
+
+
+### 1. Create a data frame from the wine data, and assign meaningful column names using the attribute information at https://archive.ics.uci.edu/ml/datasets/wine. [2 pts]
+
+```{r}
+wine <- read_csv("https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data",col_names = c("Class", "Alcohol", "Malic.acid", "Ash", "Alcalinity.ash", "Magnesium", "Total.phenols", "Flavanoids", "Nonflava.phenols", "Proanthocyanins", "Color.intensity", "Hue", "OD280/315", "Proline") )
+
+```
+
+```{r}
+typeof(wine)
+class(wine) # as it is a data frame as we need
+```
+
+```{r}
+head(wine) #check that column names were added
+```
+
+
+
+
+
+### 2. Since the attributes of the data are measured on different scales it makes sense to center and scale the data, so that we will carry out our multivariate calculations on the correlations. Generate a derived data frame with the centered and scaled chemical attributes. [2 pts]
+
+```{r}
+wine.numeric <- dplyr::select(wine, select=-Class) #we want to remove Class before centering and scaling. We only want to center and scale the 'chemical attributes'
+wine.centered.scaled <- scale(wine.numeric, center=TRUE, scale=TRUE)
+
+wine.normalized <- as.data.frame(wine.centered.scaled) #recreate a data frame so we can mutate it. 
+wine.normalized$Class=as.factor(wine$Class) #add Class back to the data as a factor which will be important for downstream processing
+
+head(wine.normalized) #check that Class was added back
+```
+
+
+
+
+
+
+
+
+### 3. Using the centered-and-scaled attributes, carry out PCA of the wine data set. Generate a plots of the observations in the space of the first two PC axes. How much of the variation in the data is captured by PCs 1 and 2? [3 pts]
+
+
+```{r}
+wine.pca <- prcomp(wine.centered.scaled, center=FALSE, retx=TRUE)
+summary(wine.pca)
+```
+
+*According to the summary, about 36% of the variance is captured by PC1 and about 19% is captured by PC2. *
+
+```{r}
+pca.scores.wine <- as.data.frame(wine.pca$x)
+
+pc1v2.wine <- pca.scores.wine %>%
+  ggplot(aes(x = PC1, y=PC2)) +
+  geom_point()+
+  coord_fixed(ratio=1)
+
+pc1v2.wine
+```
+
+
+
+
+
+
+
+
+
+### 4. Using the centered-and-scaled attributes, carry out CVA of the wine data set using the MASS::lda() function. 
+### How much of the between-group variance is captured by the respective canonical variates? [3 pts]
+
+
+```{r}
+wine.lda <- lda(Class ~ ., data=wine.normalized) #carry out CVA and be sure to not include Class
+# data does need to be a data frame
+
+```
+
+```{r}
+wine.lda
+```
+
+*68.75% of the between group variance is captured along the first discriminate axis. 31.25% is captured by the second variant.*
+
+
+
+
+
+
+#5 Generate a basic CVA plot for the wine data set [3 pts]
+
+```{r}
+wine.sub <-
+  wine.normalized %>%
+  dplyr::select(-Class) %>% #drop Class column
+  as.matrix() #make matrix 
+
+#calc CV scores
+CVA.scores.wine <- wine.sub %*% wine.lda$scaling
+
+#create data frame to use for plotting
+wine.CV <- data.frame(CVA.scores.wine)
+wine.CV$Class <- wine.normalized$Class
+  
+```
+
+
+Next we generate the plot:
+
+```{r}
+
+wine.cva.plot <- 
+  ggplot(wine.CV, aes(x = LD1, y = LD2)) +
+  geom_point(aes(color=Class), alpha=0.5) +
+  labs(x = 'CV1', y = 'CV2') +
+  coord_fixed(ratio=1) #keep unit scaling of plot fixed at 1
+
+wine.cva.plot
+```
+
+
+# 6. Generate a CVA plot illustrating the 95% confidence regions for the group means [3 pts]
+
+```{r}
+chi2 = qchisq(0.05, 2, lower.tail=FALSE) #0.05 is the vector of probabilites
+#degrees of freedom is n-1. So our degrees of freedom would be 3 Classes -1 so 2. 
+chi2
+```
+
+```{r}
+CIregions.wine.mean.and.pop <- 
+  wine.CV %>%
+  group_by(Class) %>%
+  summarize(CV1.mean = mean(LD1),
+            CV2.mean = mean(LD2),
+            mean.radii = sqrt(chi2/n()),
+            popn.radii = sqrt(chi2))
+
+CIregions.wine.mean.and.pop
+```
+
+
+```{r}
+library(ggforce)
+```
+
+
+```{r}
+wine.cva.mean.only <- 
+  wine.cva.plot +
+  geom_circle(data=CIregions.wine.mean.and.pop,
+              mapping = aes(x0= CV1.mean, y0= CV2.mean, r = mean.radii),
+              inherit.aes = FALSE)
+
+wine.cva.mean.only
+```
+
+
+
+
+
+
+
+# 7. Generate another CVA plot illustrating the 95% tolerance regions for the group population distributions [3 pts]
+
+```{r}
+wine.cva.pop.only <- 
+  wine.cva.plot +
+  geom_circle(data=CIregions.wine.mean.and.pop,
+              mapping = aes(x0= CV1.mean, y0= CV2.mean, r = popn.radii),
+              linetype = 'dashed',
+              inherit.aes = FALSE)
+
+wine.cva.pop.only
+```
+
+
+
+
+
+
+
+# 8. Comment on the similarities and differences between the PCA plot and CVA plot of the wine data [3 pts]
+
+```{r}
+cowplot::plot_grid(pc1v2.wine, wine.cva.plot)
+```
+
+*At first glance the two plots seem almost identical other than the color by Class. Upon closer inspection, the differences are more noticable including an outlier at the top and lack of clustering in the PCA compared to the CVA.*
+
+
+
+
+
