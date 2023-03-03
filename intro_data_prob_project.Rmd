@@ -14,13 +14,11 @@ output:
 ```{r load-packages, message = FALSE}
 library(ggplot2)
 library(dplyr)
+library (tidyr)
+library (tidyverse)
 ```
 
 ### Load data
-
-Make sure your data and R Markdown files are in the same directory. When loaded
-your data file will be called `brfss2013`. Delete this note when before you submit 
-your work. 
 
 ```{r load-data}
 load("brfss2013.RData")
@@ -33,31 +31,96 @@ load("brfss2013.RData")
 ## Part 1: Data
 
 
+Data contained in the BRFSS (Behavioral Risk Factor Surveillance System) is through an observational study that collects information about non-institutionalized adults (18 years +) across the US by state. This information is collected through telephone interviews of an adult randomly selected from a household. While I was not able to fi nd documentation on whether or not the household called was randomly (was it clustering to help with generaliziability?) selected I was able to fi nd that the definition of a household and that college housing was included. Cellular phones also stand as a single-person household if called for an interview.
+While there may be an attempt for random sampling, I think this study has too many factors that will impact the attempt at being random. First, the non-response bias of a phone interview survey must be substatial. From my personal experiences, I predict more people are going to hang-up rather than answer the questions. Additionally, there is nothing random about the adult of a household who answers the phone. It is likely the household is bias where one adult is more willing or more available to answer.That would ultimately skew these results. Additionally, some adult groups are more likely to physically be home during the call(those who work from home, work unpredictable hours, or are retired) and this again reduces the random nature of the samples. This study does not capture the data from individuals who may have group housing or displaced housing, and possibly with a single shared house phone and no cell phones. These are all biases in the person who answers the phone. Additionally,there are biases in the type of people willing to answer. Some personalities are going to be more willing to coorporate. Any individual whose first language is not English is more likely to refuse or misconceive the question being asked. There are likely sex, gender, profession, life history, and a number of other factors that will reduce the randomness of these results.
+The results of this study can only be used for generalized associations between the samples. And with that, not a robust generalization of the population of interest, but rather simply the population who answers the phone and completes the survey.No causality can be inferred because variables are not controlled and individuals were not assigned to random groups and then studied.
+
+
+
+
 * * *
 
 ## Part 2: Research questions
 
 **Research quesion 1:**
 
+Is there a relationship between sex, race, and number of work hours? Spefi cially, a relationship betweenrace, sex, and individuals that work overtime (more than 40 hours per week)?
+
+Often individuals from low-income communities work multiple part-time jobs. Their combined hours can amount to well above the average full-time job. Minority races disproportionately make up a large fraction of the lower-class. I'm interested in seeing ifdata from these phone interviews supports this narrative?
+
+
 **Research quesion 2:**
+
+Is there an association between race, health status, and health care coverage?
+Lacking health care coverage while identifying as having a low health status is a bad situation. Is there a bias across races that identify in this way?
 
 **Research quesion 3:**
 
+Is there a relationship between race and having high blood pressure (hypertension) during pregnancy forfemales in this study?
+
+Pre-eclampsia is more likely to occur in Black pregnant women than in White pregnant women. This can lead to the death of the child, mother, or both. Does this data show evidence of that?
+https://www.heart.org/en/news/2019/02/20/why-are-black-women-at-such-high-risk-of-dying-from-pregnancy-complications https://www.heart.org/en/news/2019/02/20/why-are-black-women-atsuch-
+high-risk-of-dying-from-pregnancy-complications
+https://nortonhealthcare.com/news/pregnant-african-american-women-pre-eclampsia/# 
 
 * * *
 
 ## Part 3: Exploratory data analysis
 
-NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
-button (green button with orange arrow) above. Make sure that your code is visible
-in the project you submit. Delete this note when before you submit your work.
 
-**Research quesion 1:**
+**Research question 1:**
+
+Is there a relationship between sex, race, and number of work hours?
+
+Variables: sex: sex of respondent; levels: Male Female scntwrk1: How Many Hours Per Week Do You Work (1-96 are hour, 97 -Don't know/not sure, 98 - zero, 99 - refused)) X_mrace1 - race of individual (excluding ethnicity data)
+I am going to limit this analysis to respondents that work more than 40 hours per week, simply because 1) the data is too large otherwise and 2) I think this will still be interesting to consider.
+
+#### Q1 Selecting and cleaning data
 
 ```{r}
+# 1) Make new data frame with only variables of interest
+q1.work = brfss2013 %>%
+select (sex, scntwrk1, X_mrace1)
 
+# 2) Remove rows with NAs.
+q1.work = q1.work %>%
+drop_na()
+
+# 3) Drop levels for easier manipulation later.
+q1.work <- droplevels(q1.work)
+# 4) Rename the work column to make it easier to remember.
+q1.work = q1.work %>%
+rename(hoursworked = scntwrk1)
+
+#5) Remove value of 97, 98, 99 from the work columns which refer to "dont know", "zero", or "refused" respectively.
+
+q1.work = q1.work[!(q1.work$hoursworked == 97),]
+q1.work = q1.work[!(q1.work$hoursworked == 98),]
+q1.work = q1.work[!(q1.work$hoursworked == 99),]
+
+# 6) Filter to only include those who worked over 40 hours per week.
+q1.filter <- filter(q1.work, hoursworked > 40)
+
+# 7) Overall summary for the reader
+summary(q1.filter)
 ```
 
+#### Graph Q1
+
+```{r}
+ggplot(
+  q1.filter, 
+  aes(x = X_mrace1, y = hoursworked, fill = sex)) +
+geom_boxplot(position = "dodge2") +
+scale_x_discrete(guide =
+guide_axis(
+n.dodge=5)) +
+labs( 
+  title= "Respondant's Race, Sex, and Hours Worked per Week",
+  subtitle = "Race & Sex vs. Hours Worked (starting at 41 hours per week)") +
+xlab("Race") +
+ylab ("Hours Worked per Week")
+```
 
 
 **Research quesion 2:**
