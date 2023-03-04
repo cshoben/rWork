@@ -7,6 +7,9 @@ output:
     theme: spacelab
 ---
 
+Data codebook:  https://tinyurl.com/2p8snxdf
+Project Goals:  https://tinyurl.com/pjyjpzbw
+
 ## Setup
 
 ### Load packages
@@ -105,7 +108,7 @@ q1.filter <- filter(q1.work, hoursworked > 40)
 summary(q1.filter)
 ```
 
-#### Graph Q1
+#### Q1 Graph
 
 ```{r}
 ggplot(
@@ -122,10 +125,49 @@ xlab("Race") +
 ylab ("Hours Worked per Week")
 ```
 
+#### Q1 Conclusion
 
-**Research quesion 2:**
+Considering those that work more than 40 hours per week as "over time". It appears that mean number of hours worked perweek (for those who work overtime), even when stratifi ed by sex, are similar between White, Black, Asian, NativeHawaiian/Pacifi c Islander, and other race. A diff erence in sexes is seen for American Indian or Alaskan Native, with femaleaverage work hours being higher. Female American Indian or Alaskan Native seem to have the highest skew of overtime hours,with all responses being captured in the whiskers of the plot (no outliers). In other words, the third quartile range for NativeAmerican or Alaskan Native females spans well into the range of outliers for all other groups, indicating that this high number ofwork hours is more common for this group. Average work hours for multiracial males that worked overtime was higher thantheir female counterparts. I think that it would be useful if the survey asked if individuals worked more than one job and I expect we would have seen atrend across both race and sex. I also wonder how many people this missed, especially those that work overtime as I imaginethey would have been working when these interviews were conducted. I also wonder about how this data is skewed bypriviledged races that are more likely to have a salary job or a job with fl exibility where they could step away for a call during theday. I personally have worked multiple jobs in food and did not have the ability to just walk away when needed. These types ofjobs (essential workers) are more likely to be fi lled by more marginalized races and thus more likely to have been missed duringthis data collection.
+Other limitations to this interpretation include what I have already expressed at the beginning of this doc (sample bias, responsebias, use of contact/data collection bias, etc.)
+I do not believe these results can be generalized to the American people as a whole, and further data would need to be collected(randomized sampling) to speculate further.
+
+
+**Research question 2:**
+
+Is there an association between race, health status, and health care coverage?
+X_mrace1: race of individual GENHLTH: 1 excellent, 2 very good, 3 good, 4 fair, 5 poor, 7 dont know, 9 refused. HLTHPLN1: healthcare coverage. 1- Yes, 2- No, 7- dont know 9- refused
+Is there a bias by race for having poor health and no health care coverage?
+
+#### Q2 Selecting and cleaning data
 
 ```{r}
+
+# 1) Select for the three variables of interest, remove NAs, and drop levels
+q2.data =
+  brfss2013 %>%
+select(X_mrace1, genhlth, hlthpln1)
+q2.data = q2.data %>%
+drop_na()
+
+# 2) Filter for the respondents that meet the criteria of interest (low health and no health insurance).
+keep <- c("Poor")
+q2.filter <- filter(q2.data, genhlth%in%keep)
+q2.filter <- filter(q2.filter, hlthpln1 == "No")
+
+# 3) Need to normalize if I am going to look across races. My goal is to divide the total number of individuals from each race in q2.filter by the total number of individuals for each race that answered both the question on general health and health insurance (q2.data). Then multiply that value by 100 to get the percentage of respondents fitting my criteria from each race category. I will round these percentages for easy graphing later.
+totalRaceQ2 <- count(q2.data, X_mrace1)
+races <- data.frame(totalRaceQ2$X_mrace1)
+filterRaceQ2 <-count(q2.filter, X_mrace1)
+tot.race <- data.frame(
+  Race = races$totalRaceQ2.X_mrace1,
+  Total = totalRaceQ2$n,
+  Filter = filterRaceQ2$n)
+tot.race$Normalized <- tot.race$Filter/tot.race$Total
+tot.race <- tot.race %>% mutate(Percentage =Normalized*100)
+tot.race$PercentageRound = round(tot.race$Percentage, digit =2)
+
+# 4) Summary of final data frame
+summary(tot.race)
 
 ```
 
