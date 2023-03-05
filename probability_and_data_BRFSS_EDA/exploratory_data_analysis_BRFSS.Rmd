@@ -172,6 +172,22 @@ summary(tot.race)
 ```
 
 
+#### Q2 Graph
+```{r}
+ggplot(tot.race, aes(x=Race, y=Percentage)) +
+  geom_bar(stat= "identity", width=0.5, fill= "tomato3") +
+  labs(title="Percentage with Poor Health and No Health Care Coverage by Race", 
+       subtitle = "Race vs. Normalized Counts") +
+  xlab("Race") +
+  ylab("Percentage with Poor Health and No Health Care Coverage") +
+  scale_x_discrete(guide = guide_axis(n.dodge=4)) +
+  geom_text(
+    aes(label = PercentageRound), 
+    position = position_dodge(width = 0.9), 
+    vjust = -0.25)
+```
+
+
 
 **Research quesion 3:**
 
